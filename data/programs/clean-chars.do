@@ -26,58 +26,52 @@ global DER "../derived/"
 
 import excel ${RAW}Cars_Characteristics.xlsx, sheet("Summary") firstrow case(lower)
 
-drop if line_type=="HEADER"
+drop if line_type=="HEADER"   // used to mark makes for inital clean
+drop word*                    // used to mark makes for inital clean
+
+** Drop <1991 b/c that is where the BLP data goes until
+drop if year<1991
 
 
-* extract number of doors.
-
-drop word*
-
+** extract number of doors
 gen doors = .
-
 replace doors=2 if regexm(makeseries,"2-dr") == 1
 replace doors=4 if regexm(makeseries,"4-dr") == 1
 replace doors=5 if regexm(makeseries,"5-dr") == 1
 
-keep year make final_series bodystyle-electricfederaltaxcredit doors
-
-* Drop <1991 b/c that is where the BLP data goes until
-drop if year<1991
-
-* ****************************************
-* figure out base trim
-* - needs an msrp
-* - needs to be a 4-dr if that exists
-* ****************************************
-
-* ** Maybe take the cheapest 4-dr trim. **
-
-* this starts in 1991 (I think the pre-1991 data is not very comprehensive..)
+** Extract base transmission
 gen trans_type = substr(standardenginetrans,1,1)  // "C" is CVT which is continuous variable trans.
 replace trans_type = "M" if trans_type == "("
 replace trans_type = "M" if trans_type == "5"
 replace trans_type = "U" if ~inlist(trans_type,"A","M","C")
 
-
-rename final_series model
-sort year make model doors
-
-by year make model: egen maxdoors=max(doors)
-drop if maxdoors==4 & doors!=4
-
-
+** Clean up prices and mpg -- I should export a list of non-msrps to see if we can hand collect them
 destring pricemsrp, force replace ignore(",")
+replace pricemsrp = . if pricemsrp<3000   // just a few odd prices
 destring standardengineestmpghwy, force replace
-** ! replace missing mpgs !!**
+
+keep year make final_series bodystyle-electricfederaltaxcredit doors trans_type
 
 
-* I should export a list of non-msrps to see if we can hand collect them
+* ******************************************************************************
+* Define and clean up vars
+* Define base trim
+* - needs an msrp
+* - needs to be a 4-dr if that exists
+* - base trim is the cheapest 4-dr variant with an MSRP
+* ******************************************************************************
+rename final_series model
 
 drop if pricemsrp==.  // 390/30,036 dropped
 
+bysort year make model: egen maxdoors=max(doors)
+bysort make model: egen maxdoors_plus=max(doors)
+replace maxdoors = maxdoors_plus if maxdoors==.
+drop if maxdoors==4 & doors!=4
 
-
-* define characteristics we will use
+* ******************************************************************************
+** define characteristics we will use
+* ******************************************************************************
 /*
 From BLP:
 number of cylinders, number of doors, weight, engine displacement, horsepower,
@@ -95,12 +89,13 @@ rename standardenginetractioncontro traction_control
 rename standardengineabs abs
 rename standardengineestmpghwy mpg
 rename standardenginestabilitycontr stability
+rename wheelbasewheelbaseinsstd size_wheelbase
 
 gen electric=1 if electricelectricmotortype!=""
 replace electric=0 if electric!=1
 
 
-* adjusted price to merge with BLP data
+** adjusted price (by taxes/subsidies) to merge with BLP data
 destring guzzlertax, force replace ignore(",")
 replace guzzlertax=0 if guzzlertax==.
 destring electricfederaltaxcredit, force replace ignore(",")
@@ -110,7 +105,7 @@ gen prices = (pricemsrp + guzzlertax - electricfederaltaxcredit)/1000
 
 
 /*
-Note: see 1991 Acura Integra. The three trims are identical according to my data.
+Note on trims: see 1991 Acura Integra. The three trims are identical according to the data.
 However, the pricemsrp differs. So it must be non-structural things about the car, like
 leather, sound system, etc. (actually, the more expensive one is 50lbs heavier, so it might have
 a spoiler?).
@@ -120,9 +115,8 @@ a fundementally different car.
 
 sort year make model pricemsrp
 
-
 // by year make model: keep if _n==1
-collapse (firstnm) engine_liter engine_horsepower size_length size_width engine_trans ///
+collapse (firstnm) engine_liter engine_horsepower size_length size_width size_wheelbase engine_trans ///
   traction_control abs mpg electric doors bodystyle drivetype stability prices, by(year make model)
 
 order year make model prices
@@ -141,10 +135,51 @@ replace prices = prices/cpi
 gen mpd = mpg/gas
 
 
-sort year make model
-save "${DER}wards-chars.dta", replace
+/* sort year make model */
+/* save "${DER}wards-chars.dta", replace */
 
 
-/*
+
 * create make and design year
 sort make model year
+
+** make t-1 variables for all variables to see if everything stays the same by 10%
+* See BLP page 869: "...their horsepower, width, length, or wheelbase do not change by more than ten percent..."
+
+destring engine_horsepower, force replace
+destring size_width, force replace
+destring size_wheelbase, force replace
+
+
+foreach ix in engine_horsepower size_width size_length size_wheelbase {
+  gen lag_`ix' = `ix'[_n-1]
+  replace lag_`ix' = . if model!=model[_n-1] & year!=year[_n-1]+1
+}
+
+
+
+gen same_design = 0
+replace same_design = 1 if ///
+  engine_horsepower < lag_engine_horsepower + .1*lag_engine_horsepower ///
+  & size_width < lag_size_width + .1*lag_size_width ///
+  & size_length < lag_size_length + .1*lag_size_length ///
+  & size_wheelbase < lag_size_wheelbase + .1*lag_size_wheelbase ///
+  & engine_horsepower > lag_engine_horsepower - .1*lag_engine_horsepower ///
+  & size_width > lag_size_width - .1*lag_size_width ///
+  & size_length > lag_size_length - .1*lag_size_length ///
+  & size_wheelbase > lag_size_wheelbase - .1*lag_size_wheelbase ///
+  & make == make[_n-1] & model == model[_n-1] & year == year[_n-1]+1
+
+tostring year, g(year_str)
+replace year_str = substr(year_str,3,2)
+bysort make model: gen series = model + year_str if same_design==0
+
+replace series = series[_n-1] if make == make[_n-1] & model == model[_n-1] & year == year[_n-1]+1
+
+* create a variable that capture the number of years since previous re-design
+sort series year
+bysort series: gen design_year = year - year[1]
+
+drop year_str same_design
+
+save "${DER}wards-chars.dta", replace
