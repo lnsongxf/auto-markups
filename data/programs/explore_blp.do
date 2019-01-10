@@ -15,7 +15,7 @@ clear all               // Start with a clean slate
 set linesize 80         // Line size limit to make output more readable
 macro drop _all         // clear all macros
 capture log close       // Close existing log files
-log using explore_blp.log, text replace      // Open log file
+log using logs/explore_blp.log, text replace      // Open log file
 * --------------------------------------------------
 
 *-------------

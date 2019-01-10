@@ -1,6 +1,9 @@
 # README for data construction
 
 ### outstanding issues
+* Need to merge in EPA style (or other style) somehow
+  * I propose using a modifies version of the EPA-class guide.
+  * I could merge a lot based on an aux. dataset, but we will need to hand fill in many of the pre-1991 sample
 * "model" in blp data is hard to decipher
   * this matters b/c blp define a "product" as a make-model-design, so to link the two datasets we need to continue the same make-model-design
   * eg. if Honda Accord was designed in 1987 and not redesigned until 1994, we don't want to count the merge year, 1991, as a new design because we cannot link models across datasets.
@@ -11,10 +14,14 @@
   * we could construct a variable called "luxury" that just designates if the car has premium standard features.
 
 
-#### explore_blp.do
-uses: ${RAW}blp_products.csv
+### List of fixes that need to be addressed manually
+* ACURA RL 1996, 1997, 2000 (weird price)
 
-output: ${DER}blp.dta
+
+#### explore_blp.do
+input: ${RAW}blp_products.csv, ${DER}make_list.csv
+
+output: ${DER}blp.dta, ${DER}make_list.dta
 
 - basic clean of blp sales/characteristics data
 - merge with parents
@@ -22,11 +29,27 @@ output: ${DER}blp.dta
 
 
 #### merge-sales.do
-uses: ${DER}blp.dta, ${DER}wards.dta
+input: ${DER}blp.dta, ${DER}wards.dta
 
 output: ${DER}merged_sales.dta
 
 - appends Ward's sales data to blp data
+
+
+
+#### merge-chars.do
+input: ${DER}merged_sales.dta, ${DER}wards-chars.dta, ${DER}household.dta (num of households)
+
+output:
+
+- takes all sales (including blp chars) and merges with the ward's chars. So really the merge is just between the wards sales and wards chars.
+- then it interpolates missing char data by a simple fill-in for missing years.
+
+
+#### aggregate.do
+input: ${DER}merge_sales.dta
+
+- creates figures for aggregate sales over time
 
 
 

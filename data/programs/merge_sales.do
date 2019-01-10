@@ -15,7 +15,7 @@ clear all               // Start with a clean slate
 set linesize 80         // Line size limit to make output more readable
 macro drop _all         // clear all macros
 capture log close       // Close existing log files
-log using merge_sales.log, text replace      // Open log file
+log log/using merge_sales.log, text replace      // Open log file
 * --------------------------------------------------
 
 *-------------
@@ -47,3 +47,14 @@ by year dataset: egen totalsales = total(sales)
 replace shares = sales/totalsales if dataset=="Wards"
 
 save ${DER}merged_sales.dta, replace
+
+
+* Create master make-model list
+preserve
+
+duplicates drop make model, force
+keep make model
+sort make model
+save ${DER}make-model-list.dta
+
+restore

@@ -53,3 +53,13 @@ duplicates drop year, force
 sort year
 keep year gas_price
 save ${DER}gas-price.dta, replace
+
+
+* ***************
+* # Households
+* ***************
+import delimited ${RAW}hh.csv, clear
+rename ïyear year
+replace number_households=number_households*1000000
+sort year
+save ${DER}household.dta, replace
