@@ -62,3 +62,8 @@ uses:${RAW}auto_markups_freddata_txt/auto_markups_Annual.txt, ${RAW}gas-price.cs
 output: ${DER}cpi.dta, ${DER}gas-price.dta
 
 - cleans and saves annual gas prices and annual cpi
+
+
+#### squishvins.xlsx
+- This is from a squishvin data pull from edmunds. 
+- the hope is that this can tell us bodystyle for many of the cars. But I think we will have to go through manually. 
