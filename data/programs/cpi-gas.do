@@ -50,6 +50,15 @@ gen newdate = date(date,"YMD")
 gen year = year(newdate)
 bysort year: egen gas_price = mean(gasregcovw)
 duplicates drop year, force
+set obs `=_N+1'
+replace year = 1989 if year==.
+replace gas_price=1.00 if year==1989
+
+set obs `=_N+1'
+replace year = 1988 if year==.
+replace gas_price=0.96 if year==1988
+
+
 sort year
 keep year gas_price
 save ${DER}gas-price.dta, replace
