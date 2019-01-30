@@ -1,21 +1,25 @@
 # README for data construction
 
 ### outstanding issues
-* Need to merge in EPA style (or other style) somehow
-  * I propose using a modifies version of the EPA-class guide.
-  * I could merge a lot based on an aux. dataset, but we will need to hand fill in many of the pre-1991 sample
-* "model" in blp data is hard to decipher
-  * this matters b/c blp define a "product" as a make-model-design, so to link the two datasets we need to continue the same make-model-design
-  * eg. if Honda Accord was designed in 1987 and not redesigned until 1994, we don't want to count the merge year, 1991, as a new design because we cannot link models across datasets.
-  * Example: AMHORN71 is an American Motors Hornet, TYCORO71 is a Toyota Corolla, ODDELT72 is an Oldsmobile something.
-  * I think an RA might be able to hand collect these data.
-* blp has "standard AC" as a variable. Ward's does not, but has things like traction control and ABS.
-  * standard AC is universal by 2000, this is related to how we model preferences
-  * we could construct a variable called "luxury" that just designates if the car has premium standard features.
+1. air conditioning for Ward's sample (*ali look at MRI for AC variable*)
+2. Country/State of production (*Charlie try hand entering a few years*)
+ - Paul's data from IER paper + Ward's books + new data Ward's data(?) + VIN data from Ohio.
+ - Here for VIN lookup: https://en.wikibooks.org/wiki/Vehicle_Identification_Numbers_(VIN_codes)/World_Manufacturer_Identifier_(WMI)
+3. Create a design year varaible to track design tenure and refreshes. 
+4. Right now we are using base trim. We could use base 4-door trim. My guess is this will mainly affect bodystyle, which could be a big deal.
 
+### List of fixes that we addressed
+#### Various hand fixes to weird values. 
+- Ex. ACURA RL 1996, 1997, 2000 (weird price)
+- To fix issues like this I looked up individual cars on autotrader/edmunds
 
-### List of fixes that need to be addressed manually
-* ACURA RL 1996, 1997, 2000 (weird price)
+#### Bodystyle
+- About 75% of Ward's data had bodystyle embeded in trim variable
+- "Back-filled" using a merge to the rest of the Ward's data and the BLP data
+- Hand entered remaining bodystyles. 
+
+#### BLP Model Names
+- Hand filled in by RA (Arnab at BC) and checked by Charlie
 
 
 #### explore_blp.do
