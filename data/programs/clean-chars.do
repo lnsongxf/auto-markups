@@ -18,6 +18,15 @@ macro drop _all         // clear all macros
 capture log close       // Close existing log files
 log using clean-chars.log, text replace      // Open log file
 * --------------------------------------------------
+/*
+## Description
+
+This script cleans the Ward's specs data and finds the base model.
+We will use 2 defns of "base model."
+1) The base model listed in Ward's
+2) The first/base 4-door (sedan) model listed in Ward's
+*/
+
 
 *-------------
 * Macros
@@ -28,7 +37,7 @@ global DER "../derived/"
 /*
 Run once to save to dta -- quicker load fr code testing
 import excel ${RAW}Cars_Characteristics.xlsx, sheet("Summary") firstrow case(lower)
-save ${DER}Cars_Characteristics.dta
+save ${DER}Cars_Characteristics.dta, replace
 */
 use ${DER}Cars_Characteristics.dta
 
@@ -36,6 +45,9 @@ drop if line_type=="HEADER"   // used to mark makes for inital clean
 drop word*                    // used to mark makes for inital clean
 
 rename final_series model
+
+* Fix model names that are not correct from upwork
+do fix-model-names.do
 
 * How things are originally ordered from Ward's (to find "base" model)
 gen master_roworder = _n
@@ -113,12 +125,40 @@ replace bodystyle = "hatchback" if bodystyle=="natchback"
 ** Export list of unknown bodystyles to hand collect data
 * We use an edmunds api query of squish vins from Charlie's middleman paper to help
 tab bodystyle, m
-preserve
+
+/* preserve
   keep if bodystyle==""
   keep make model
   duplicates drop make model, force
   save ${DER}fill-bodystyle.dta, replace
+restore */
+
+preserve
+  import excel using ${DER}fill-bodystyle.xlsx, clear firstrow
+  sort make model
+  save ${DER}fill-bodystyle-wards-done.dta, replace
 restore
+merge m:1 make model using ${DER}fill-bodystyle-wards-done.dta, update replace
+drop if _merge==2
+drop _merge
+
+replace bodystyle = "conv" if bodystyle=="convertible"
+replace bodystyle = "hatchback" if bodystyle=="hatcbak"
+replace bodystyle = "wagon" if bodystyle=="wagin"
+replace bodystyle = "sedan" if bodystyle=="wagin"
+replace bodystyle = "truck" if bodystyle=="pu"
+replace bodystyle = "suv" if bodystyle=="cuv"
+replace bodystyle = "coupe" if bodystyle=="sportscar"
+replace bodystyle = "truck" if bodystyle=="pickup truck"
+replace bodystyle = "wagon" if bodystyle=="station wagon"
+replace bodystyle = "truck" if bodystyle=="cabchassis"
+replace bodystyle = "sedan" if bodystyle=="sedan "
+
+tab bodystyle, m
+
+replace bodystyle = "sedan" if model=="SATURN S"
+replace bodystyle = "truck" if model=="T10/T15"
+replace bodystyle = "van" if model=="VOYAGER"
 
 
 ** Extract base transmission
@@ -224,8 +264,10 @@ tab `ix'
 
 sum `REPLACE'
 
-
-* NOW TAKE FIRST ENTRY ACCORDING TO ORIGINAL WARDS ORDERING
+* *************************************************************************
+* Specification 1: TAKE FIRST ENTRY ACCORDING TO ORIGINAL WARDS ORDERING
+* *************************************************************************
+/* preserve */
 sort year make model master_roworder
 by year make model: keep if _n==1
 
@@ -270,16 +312,18 @@ gen prices = (pricemsrp + guzzlertax - electricfederaltaxcredit)/1000
 sort year make model pricemsrp
 
 * This collapse is redundnat because we already have unique values -- but but in cleans up the data.
-collapse (firstnm) engine_liter engine_horsepower size_length size_weight size_width size_wheelbase engine_trans ///
-  traction_control abs mpg electric doors bodystyle drivetype stability prices, by(year make model)
+/* collapse (firstnm) engine_liter engine_horsepower size_length size_weight size_width size_wheelbase engine_trans ///
+  traction_control abs mpg electric doors bodystyle drivetype stability prices, by(year make model) */
+
+keep engine_liter engine_horsepower size_length size_weight size_width size_wheelbase engine_trans ///
+  traction_control abs mpg electric doors bodystyle drivetype stability prices year make model
 
 order year make model prices
 
 sort year
-
-merge m:1 year using ${DER}cpi.dta, assert(3 2) keep(3)
+merge m:1 year using ${DER}cpi.dta, assert(2 3) keep(3)
 drop _merge
-merge m:1 year using ${DER}gas-price.dta, assert(3 2) keep(3)
+merge m:1 year using ${DER}gas-price.dta, assert(2 3) keep(3)
 drop _merge
 
 replace gas = gas/cpi
@@ -292,10 +336,23 @@ gen mpd = mpg/gas/10
 gen hpwt = 10*engine_horsepower / size_weight
 
 * BLP's size
-gen space = size_length * size_width/1000
+gen space = size_length * size_width/10000
 
 sort make model year
 save "${DER}wards-chars.dta", replace
+restore
+
+* *************************************************************************
+* Specification 2: TAKE FIRST ENTRY with 4-doors (IF IT EXISTS)
+* *************************************************************************
+
+
+** TAKE THE FIRST SEDAN / 4-DR ACCORDING TO WARDS ORDERING
+
+* save a dataset of just the year seriesnames master_roworder make model year
+* merge back by year make modle and for those that merge drop the 2-dr models
+
+
 
 /*
 Things to do after the merge with BLP:

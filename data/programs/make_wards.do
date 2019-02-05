@@ -27,6 +27,8 @@ global DER "../derived/"
 
 ** Sales 88-06
 import delimited "${RAW}sales88-06.csv", varnames(1) clear
+destring sales*, force replace ignore(",")
+collapse (sum) sales*, by(parent make model vehicletype source)
 
 reshape long sales, i(make model vehicletype source) j(datetmp)
 
@@ -57,6 +59,8 @@ save ${DER}sales88.dta, replace
 
 ** Sales 07-15
 import delimited "${RAW}sales07-15.csv", varnames(1) clear
+destring sales*, force replace ignore(",")
+collapse (sum) sales*, by(parent make model)
 
 drop if make==""
 reshape long sales, i(make model) j(datetmp)
@@ -89,6 +93,12 @@ append using ${DER}sales88.dta
 
 
 destring sales, ignore(",") force replace
+
+* hardcode fixes to model names
+replace model="4RUNNER" if model=="4RUNNER PASS"
+replace model="WRX" if model=="WRX IMPREZA"
+replace model="WRX" if model=="WRX (IMPREZA)"
+replace model="VOYAGER" if model=="VOYAGER (CHRYSLER)"
 
 collapse (sum) sales, by(make model year parent vehicletype)
 

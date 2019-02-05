@@ -15,7 +15,7 @@ clear all               // Start with a clean slate
 set linesize 80         // Line size limit to make output more readable
 macro drop _all         // clear all macros
 capture log close       // Close existing log files
-log log/using merge_sales.log, text replace      // Open log file
+log using "logs/merge_sales.log", text replace      // Open log file
 * --------------------------------------------------
 
 *-------------
@@ -35,16 +35,8 @@ replace dataset="BLP" if dataset==""
 replace model = clustering_ids if model==""
 drop clustering_ids
 
-order year make model shares
+order year make model sales
 sort year dataset make model
-
-by year dataset: egen insideshare = total(shares)
-replace insideshare=. if insideshare==0
-replace shares = shares/insideshare
-
-drop insideshare
-by year dataset: egen totalsales = total(sales)
-replace shares = sales/totalsales if dataset=="Wards"
 
 save ${DER}merged_sales.dta, replace
 
@@ -55,6 +47,6 @@ preserve
 duplicates drop make model, force
 keep make model
 sort make model
-save ${DER}make-model-list.dta
+save ${DER}make-model-list.dta, replace
 
 restore

@@ -24,11 +24,30 @@ log using logs/explore_blp.log, text replace      // Open log file
 global RAW "../raw/"
 global DER "../derived/"
 
+* BLP Table 1 avg sales per model
+import excel ${RAW}BLP-table1.xlsx, clear firstrow
+sort year
+save ${DER}BLP-table1.dta, replace
 
-import delimited ${RAW}blp_products.csv
+
+
+import delimited ${RAW}blp_products.csv, clear
 
 gen make_id = substr(clustering_ids,1,2)
 gen design_year = substr(clustering_ids,-2,2)
+
+rename market_ids year
+
+merge m:1 year using ${DER}BLP-table1.dta
+
+bysort year: egen J=count(year)
+by year: egen insideshare=sum(shares)
+
+gen hh = (meansales*J)/insideshare
+gen sales = shares*hh
+replace sales=round(sales)
+
+drop J shares hh meansales insideshare _merge
 
 * Print out lsit of unique make names
 * - I use this manually keyed in make names into "data/derived/make_list.csv"
@@ -62,11 +81,12 @@ restore
 merge m:1 make_id using ${DER}make_list, keep(3)
 drop _merge
 
-gen year = market_ids
-drop market_ids
+/* gen year = market_ids */
+/* drop market_ids */
 do make_parents
 
 replace parent=make if parent==""
+replace mpg = mpg*10
 
 save ${DER}blp.dta, replace
 

@@ -1,0 +1,20 @@
+* Change countries to merge with PWT
+
+gen country = ""
+replace country="Argentina" if country1=="ar"
+replace country="Australia" if country1=="au"
+replace country="Brazil" if country1=="br"
+replace country="Canada" if country1=="ca"
+replace country="Germany" if country1=="de"
+replace country="France" if country1=="fr"
+replace country="Hungary" if country1=="hu"
+replace country="Italy" if country1=="it"
+replace country="Japan" if country1=="jp"
+replace country="Republic of Korea" if country1=="kr"
+replace country="Mexico" if country1=="mx"
+replace country="Serbia" if country1=="rs" // no yugoslavia in Penn World Tables??
+replace country="Sweden" if country1=="se"
+replace country="Thailand" if country1=="th"
+replace country="Turkey" if country1=="tr"
+replace country="United Kingdom" if country1=="uk"
+replace country="United States" if country1=="us" 
