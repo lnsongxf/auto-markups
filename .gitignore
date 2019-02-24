@@ -1,2 +1,12 @@
 *.jl
 *.csv
+*.dta
+*.log
+*.zip
+*.txt
+*.xlsx
+*.xls
+*.diary
+*.eps
+*.DS _Store
+Gavin\'s\ Working\ Folder/*
