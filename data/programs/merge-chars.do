@@ -249,7 +249,8 @@ replace bodystyle="sedan" if model=="SUPREME" & make=="OLDSMOBILE"
 replace bodystyle="sedan" if model=="VOLVO 200"
 replace bodystyle="sedan" if model=="VOLVO 700"
 
-drop if bodystyle=="truck"
+* Keep Trucks now!!!
+*drop if bodystyle=="truck"
 drop if missing(prices)
 drop if missing(sales)
 drop if sales<200
@@ -259,10 +260,10 @@ drop if make=="CP"
 
 
 * compute shares
-gen shares = sales/(number_households/7)
-bysort year: gen insideshare = sum(shares)
+gen shares = sales/(number_households/5)
+bysort year: egen insideshare = total(shares)
 gen outsideshare = 1-insideshare
-bysort year bodystyle: gen shares_bodystyle_total = sum(shares)
+bysort year bodystyle: egen shares_bodystyle_total = total(shares)
 gen shares_bodystyle = shares/shares_bodystyle_total
 
 
@@ -291,15 +292,18 @@ preserve
 restore
 
 merge 1:1 make model year using ${DER}production-locations.dta
-keep if _merge==3
+* !!! Fix this by adding production location of trucks!
+keep if _merge==3 | bodystyle=="truck"
 drop _merge
 
 tab country1
 do make-countries
 
+
+** Merge in Penn-World-Table data.
 sort country year
 merge m:1 country year using ${RAW}pwt90.dta, keepusing(country year pl_gdpo rtfpna)
-keep if _merge==3 | _merge=1
+keep if _merge==3 | _merge==1
 drop _merge
 
 

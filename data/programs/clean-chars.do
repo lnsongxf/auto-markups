@@ -300,6 +300,7 @@ replace pricemsrp=29905  if make=="FORD" & model=="CROWN VICTORIA" & year==2010
 replace pricemsrp=112949  if make=="HUMMER" & model=="HUMMER H1" & year==2002
 replace pricemsrp=13470  if make=="JEEP" & model=="WRANGLER" & year==1996
 replace pricemsrp=21275  if make=="PONTIAC" & model=="G6" & year==2010
+drop if model=="MAZDA 323" & year==1976
 
 ** adjusted price (by taxes/subsidies) to merge with BLP data
 destring guzzlertax, force replace ignore(",")
